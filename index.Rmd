@@ -1,0 +1,26 @@
+---
+title: "A "
+author: "Alessio Nardin"
+date: "30-08-2023"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [packages.bib, biblio.bib]
+# url: your book url like https://bookdown.org/yihui/bookdown
+# cover-image: path to the social sharing image like images/cover.jpg
+description: "This thesis aims to explore some of the issues concerning the impact of Artificial Intelligence on innovation and specifically whether AI should be considered both as a General Purpose Technology and a research tool that can itself be used to increase the rate of innovation, also defined in the literature as a General Method of Invention. AI can both cause severe disruption in the economy and society and foster economic growth and development. After a historical and conceptual introduction of the mechanics of AI and a presentation of the institutions that regulate innovations (intellectual property rights), the work focus on the impact of AI on innovation, both through a qualitative analysis of the different ways and in which AI can be deployed and through the deployment of traditional and new indicators to detect GPTs in patent data."
+
+link-citations: yes
+github-repo: AlessioNar/ms-thesis.alessionardin.eu
+---
+
+```{r include=FALSE}
+# automatically create a bib database for R packages
+knitr::write_bib(c(
+  .packages(), 'bookdown', 'knitr', 'rmarkdown'
+) ,'packages.bib')
+
+```
+
+# Abstract {#abstract .unnumbered}
+
+This project seeks to make a valuable contribution to the field by creating an enhanced and efficient approach for document conversion and annotation within the legal domain. To achieve this goal, the project involves the development of a Python library that empowers seamless data processing. By extending the functionality of the open-source annotation tool, Doccano, the proposed method allows for enriching the label functionality of the tool with existing ontologies and controlled vocabularies, enabling comprehensive end-to-end processing. Through this approach, the project aims to streamline and improve the document annotation process, benefiting legal professionals and researchers alike.

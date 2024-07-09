@@ -1,0 +1,1152 @@
+::: titlepage
+::: center
+![image](images/ai4gov.png){width="100%"}
+
+Master's Degree in Artificial Intelligence for Public Services
+
+A Method for the Semantic Annotation of Legal Documents with Doccano
+:::
+
+**Supervisor** Victor Rodriguez Doncel
+
+**Student**
+
+Alessio Nardin
+
+**Academic Year**
+
+2022/2023
+:::
+
+# Introduction {#introduction .unnumbered}
+
+The process of annotating legal texts is often a time-consuming
+endeavor, difficult to scale due to its dependence on factors like
+annotation objectives, legal text intricacies, use-cases, and other
+considerations. As a result, this becomes a resource-intensive task, as
+the creation of semantic annotations, whether done manually or through
+automated means, typically happens as a one-off for each specific
+use-case.
+
+With this work, we propose to leverage the doccano annotation tool for
+manual semantic annotation of legal texts, later transformed in the Lynx
+document format at the paragraph level.
+
+## Motivation {#motivation .unnumbered}
+
+## Objectives {#objectives .unnumbered}
+
+This project seeks to make a valuable contribution to the field of
+semantic annotation of legal texts by creating a streamlined approach
+for manual document annotation by leveraging legal ontologies.
+Specifically, the work focuses on two strands:
+
+-   Developing a data transformation pipeline that integrates the
+    Doccano annotation tool [@doccano] and outputs the annotated
+    documents according to the Lynx specification [@lynxspecification]
+
+-   Demonstrating the application of the data transformation pipeline by
+    annotating the Italian Copyright legislation with the Copyright
+    ontology [@garciaCopy2006]
+
+## Methodology {#methodology .unnumbered}
+
+The project involves the development of a Python library that empowers
+seamless data processing. By extending the functionality of the
+open-source annotation tool, Doccano [@doccano], the proposed method
+allows for enriching the label functionality of the tool with existing
+ontologies and controlled vocabularies, enabling comprehensive
+end-to-end processing.
+
+The choice of Python as the implementation language was guided by its
+expressive syntax, rich library ecosystem, and its wide acceptance in
+the data science and AI communities.
+
+Our method incorporates Doccano, an open-source text annotation tool for
+machine learning practitioners [@doccano]. Doccano provides a web
+interface that allows for the integration of both manual annotations and
+automatic services via APIs. It supports a variety of annotation
+techniques, for both images and text, but in the context of this work,
+we extended the named entity recognition functionality by integrating
+semantic annotation based on existing legal ontologies or controlled
+vocabularies. By integrating Akoma Ntoso documents with Doccano, we can
+enable the customization of the annotation process as per user
+requirements.
+
+The annotated documents can then be exported from Doccano in an
+offset-based format, where ontological classes are represented as
+*entities* and properties are represented as *relations*. Additional
+processing then takes place to transform the annotated documents into a
+knowledge graph based on the Lynx specification [@lynxspecification],
+that enables the use of such data for powering ML models.
+
+However, the unique contribution of our research extends beyond the mere
+integration of these components. The real value lies in optimizing their
+synergy to create an annotation process that is not only faster and more
+precise but also better suited to handle the complexities and subtleties
+of legal documents. Furthermore, by incorporating well-defined semantic
+choices, our system is future-proofed, ensuring continued effectiveness
+and adaptability. This semantic interoperability also leads to positive
+external effects, benefiting both organizational and legal
+interoperability.
+
+This thesis is structured as follows: Chapter 1 presents previous work
+on the semantic annotation of legal texts, Chapter 2 describes the
+structure of the data pipeline and the implementation challenges
+encountered across the project.
+
+# Semantic annotation
+
+The maturation of digital technologies has opened up countless new
+opportunities for legal activities. Across the years, they have enabled
+for improved methodologies for handling, exploring, analyzing and
+implementing legal resources, greatly impacting the legal sector at
+different levels
+[@katz_dolin_bommarito_2021; @sharma_gamoura_prasad_aneja_2021]. In this
+context, the field of legal informatics has thrived, with more and more
+scholars focusing on the different aspects of innovative legal
+technologies, from the development of legal ontologies and semantic
+annotation of legal texts, to automated regulatory compliance checks and
+enhanced legal reasoning
+[@katz_dolin_bommarito_2021; @loutsaris2020; @lynxprojectLynxLegal].
+
+This was largely enabled by the development of new ways of storing legal
+information, which allowed for an easier retrieval and reuse of the
+legal concepts present in the natural language texts such as the
+competent jurisdiction, temporal elements, and deontic rules
+[@sharma_gamoura_prasad_aneja_2021; @loutsaris2020].
+
+## What is semantic annotation?
+
+Among the array of techniques that have emerged in recent years, a
+prominent approach involves semantically annotating legal texts
+[@Soavi2022SemanticAO; @Nazarenko2021APA; @Tang2020SALKGAS; @GHIJSEN20132553].
+This technique entails *\"connecting these texts with established
+ontologies \[by\] to identify\[ing\] concepts from that ontology that
+are relevant to the document or that are referred to by it, as well as
+identifying specific passages in the document where the concepts in
+question are mentioned\" [@Brank2018SemanticAO].*. In other words,
+semantic annotation can be defined as the process of mapping texts to
+ontologies, enabling further processing by machines based on meaning
+instead of syntax [@Kiryakov2003SemanticAI].
+
+According to @towardsAnnotationAdebayo2018 semantic annotation can be
+formalized *\"as a 4-tuple (a, b, c, d), where a is the subject of the
+annotation, b is the object of the annotation, c is the predicate which
+defines the type of relationship between a and b, while d signifies the
+context in which the annotation is made.\"*
+
+### Benefits of semantic annotation
+
+Semantically annotating legal texts has several advantages. In
+particular, it can power the retrieval of legal documents using detailed
+natural language queries. Traditional annotation-based retrieval systems
+rely on word matching and they often fall short in supporting complex
+legal query types. With a semantic understanding of query sentences and
+legal annotations, retrieval can become more precise and efficient
+[@Soavi2022FromLC].
+
+Additionally, semantic annotations minimizes the ambiguity of the
+meaning of legal terms by making them explicitly defined
+[@Soavi2022FromLC]. However, this is often complex to achieve, as in
+many cases legislators draft legislation which is
+\"ambiguous-by-design\" in order to strike a deal.
+
+Moreover, semantic annotations could be reused in data-intensive
+applications downstream. An example of such applications is
+*Kantoorbelasting*, a proof-of-concept of the Flemish Government that
+leverages semantically annotated municipal regulations to enable
+citizens to estimate the taxes on commercial buildings depending on the
+city they plan to set their business in [@aecoKantoorbelasting].
+Automated compliance checks are also another well-explored use-case
+[@Kiyavitskaya2006TextMT]. Among many, a notable example is the Lynx
+project, focused on enhancing access to digital regulatory compliance
+documents that target SMEs. The pilot developed regulatory compliance
+assurance services in three areas: contract compliance, labour law and
+fossil fuels [@lynxprojectLynxLegal]. These applications are built on
+top of the semantic information contained in the legal corpora, thus
+increasing the integration among legal resources and the business logic
+and data access layers of the IT systems involved
+[@aecoKantoorbelasting; @lynxprojectLynxLegal].
+
+### Challenges of semantic annotation
+
+However, annotating legal documents is a complex task due to the
+discursive nature of legal information. This is often referred to as the
+\"natural language barrier,\" which involves translating natural
+language sentences into semantic interpretations
+[@Ceci_Lesmo_Mazzei_Palmirani_Radicioni_2012; @Soavi2022FromLC].
+Transforming these texts into solid formal specifications often requires
+a multi-step process with multiple iterations that ideally would need to
+be validated by the legislators [@Soavi2022FromLC].
+
+Additionally, as mentioned above, legal resources often purposefully
+leave room for diverse and/or conflicting interpretations, so that the
+issue is dealt in secondary legislation such as implementing acts or by
+the competent judicial court.
+
+Finally, achieving high-level semantic meanings in the legal domain
+often requires integrating extracted relations with external legal
+knowledge sources, which can be vast and varied.
+
+## Considerations for the semantic annotation of legal texts
+
+As described above, annotating a legal text is an open field of
+research. However, with the evolution of legal informatics, some
+well-known concepts and considerations have been pinpointed by the
+scientific community as crucial for achieving solid results.
+
+### Isomorphism
+
+The unique characteristics of the legal domain demand accountability,
+traceability, and explainability of legally binding decisions and
+provisions. Consequently, it is essential that a machine-readable
+representation of a legal text can be traced back to its original form
+in natural language. This element is crucial because, according to
+prevailing legal provisions in most legal systems, the natural language
+version stands as the sole authoritative source of truth recognized by
+the courts. As a consequence, much effort has been devoted to finding
+ways of encoding legal information in a way that is both human readable
+and machine readable [@reuseNOT2018; @LinkedDataTerminologyCopyright].
+
+This correspondence is referred to with the term *isomorphism*, which
+can be defined as the precise correspondence between the natural
+language of a text and its representation [@Bench-Capon1992].
+@karpf1989quality identifies five conditions for achieving this
+correspondence:
+
+1.  The individual representation of each legal source.
+
+2.  The preservation of each source's structure.
+
+3.  The maintenance of mutual relations, references, and connections
+    between sources.
+
+4.  A distinct representation of legal sources from other system
+    components.
+
+5.  The inclusion of both material and procedural rules (if the model
+    covers procedural law).
+
+In other words, isomorphism demands a clear link between the source
+material items and items in the knowledge base. Originally, the key
+benefits of isomorphism were believed to be in knowledge base
+verification, validation, and maintenance. However, further application
+revealed broader advantages, impacting the system's entire lifecycle
+[@Bench-Capon1992].
+
+Legal knowledge bases, due to the dynamic nature of laws and
+regulations, necessitate frequent updates. An isomorphic approach allows
+for pinpointed updates, meaning that minimal changes in the source
+material lead to localized adjustments in the knowledge base
+[@Bench-Capon1992].
+
+Lastly, from a user's perspective, isomorphism brings forth several
+advantages, such as simplified system learning and clarity in
+understanding the system's rationale. If users base their understanding
+on specific source documents, an isomorphic system aligns with this
+perspective, making interactions more intuitive [@Bench-Capon1992].
+
+### Provision-centric approach
+
+A notable perspective emerging from multiple studies is viewing
+legislation through a \"provision-centric\" lens. Legislation, in
+essence, transports rules or provisions, carried by linguistic acts. By
+focusing on provisions, researchers aim to offer a more systematic view
+of legal systems. Provisions, in their various forms depending on
+legislative intent, can be described using metadata schemes
+[@biagioli2005; @Francesconi2007AutomaticCO].
+
+In contractual and legal contexts, a provision is often understood as a
+stipulation, term, or condition that delineates specific aspects of an
+agreement. These provisions, as highlighted by
+@Francesconi2007AutomaticCO, serve as the cornerstone of many
+agreements, outlining the obligations, rights, and responsibilities of
+the agents involved. By focusing on provisions as the central component
+rather than mere isolated terms, this approach offers a holistic
+perspective on the entire contractual structure
+[@Francesconi2007AutomaticCO]. Provisions, when semantically annotated,
+transcend from being static textual entities to dynamic, interconnected,
+and easily navigable data points. This amalgamation not only streamlines
+the processing and management of legal documents but also ensures
+greater clarity and reduced ambiguities [@biagioli2005].
+
+### Deontic logic
+
+Deontic logic can be defined as *\"the logic of normative expressions:
+expressions pertaining to the obligations, permissions and rights of
+agents\"* [@Jones1992DeonticLI; @wright1951]. As such, it is highly
+relevant for the formal representation of legal knowledge, as it is one
+of the key elements that could be leveraged for modeling legal rules.
+Its significance becomes even more pronounced when we delve into the
+semantic annotation of legal texts, a process that attaches deeper,
+structured meanings to textual content.
+
+The foundational work by @Jones1992DeonticLI underscores the intricate
+relationship between deontic logic and legal representation. They
+emphasized that while many legal fragments can be modeled without
+deontic logic, certain situations, especially those involving potential
+violations and consequential states, demand its inclusion for accurate
+representation.
+
+The semantic richness of legal texts often goes beyond mere linguistic
+expressions. While modal terms like \"must\" or \"should\" hint at
+obligations or permissions, they are just the tip of the iceberg. The
+real challenge lies in discerning whether a provision can be violated
+and if such a violation leads to a significant new state
+[@Jones1992DeonticLI]. This discernment is crucial for semantic
+annotation, ensuring that the underlying obligations, permissions, or
+prohibitions are captured accurately.
+
+### Interpretation
+
+Semantically annotating legal texts means diving deep into the meanings
+and contexts of legal language. Instead of just labeling words,
+sentences or paragraphs, this process aims to understand and map out the
+deeper ideas, relationships, and intentions in legal documents. It's
+about making sense of complex legal terms and determining their
+relationships within the broader legal framework
+[@Ceci_Lesmo_Mazzei_Palmirani_Radicioni_2012; @Soavi2022SemanticAO].
+
+While the goal is to remain as objective as possible, the inherent
+nature of legal language means that some degree of interpretation is
+inevitable. Annotators must discern the latent intentions behind
+provisions, predict potential areas of contention, and preemptively
+address ambiguities [@Stegmeier2021DevelopmentOA; @ma2021legislative].
+
+However, the ultimate authority on interpretation traditionally rests
+with the courts. Annotators, regardless of their expertise, are
+navigating a terrain where they must tread carefully. Every legal
+provision or statute is a product of extensive deliberations,
+negotiations, and compromises. Thus, the language used often carries
+with it historical, political, and socio-economic nuances that might not
+be immediately evident [@Stegmeier2021DevelopmentOA; @Athan2014LegalII].
+
+Moreover, court decisions, which serve as primary interpretive guides,
+evolve over time. Precedents may be overturned, and interpretations
+might shift based on societal changes, evolving legal philosophies, or
+the particular composition of a judicial bench. Annotators, therefore,
+face the challenge of ensuring their annotations remain relevant and
+accurate in light of an ever-evolving body of case law. They might be
+confronted with situations where different courts provide varied
+interpretations of the same provision. Deciding which interpretation to
+align with, or how to present multiple interpretations without bias, can
+be daunting [@Stegmeier2021DevelopmentOA; @Athan2014LegalII].
+
+Additionally, the risk of personal bias is ever-present. Annotators,
+being human, come with their own set of beliefs, values, and experiences
+that can inadvertently influence their interpretation. While the goal is
+always to remain neutral, the subjective nature of some legal provisions
+can make this challenging. For instance, terms like *\"reasonable\"* or
+*\"undue hardship\"* in legal statutes are inherently open to
+interpretation and don't have fixed, universally accepted definitions
+[@ma2021legislative; @Athan2014LegalII].
+
+Lastly, the stakes are high. Misinterpretation or oversimplification
+during annotation can lead to the misrepresentation of legal provisions,
+that can have tangible consequences. This is especially true for systems
+that rely on these annotations for the automation of decision-making
+processes.
+
+## An overview of semantic annotations techniques
+
+So far, we have explored some considerations that needs to be taken into
+account when establishing an annotation strategy. However, we have not
+dwelt yet into how the annotation itself can take place and the role of
+automated systems in supporting or carrying out the annotation effort.
+Broadly speaking, the techniques that have been employed for this task
+can be subdivided in three main categories: manual annotation, assisted
+or semi-automatic annotation, and automatic annotation.
+
+### Manual Annotation
+
+Legal texts, as repositories of historical, cultural, and social
+contexts, require an interpretative finesse that automated approaches
+often lack. Because of this, semantic annotation requires the support of
+legal scholars and domain experts who engage in a meticulous examination
+of the texts. Through this process, they assign relevant semantic tags
+or metadata based on their expertise, interpretation and understanding
+of the legal text [@Nazarenko2018AnAL; @Governatori2005RepresentingBC].
+
+The main advantage of manual annotation lies in its precision. The
+complexity of the legal language often elude computational algorithms.
+As a result, manual annotation ensures that annotations encompass both
+the overt and covert meanings enshrined within legal provisions.
+Furthermore, as mentioned above, certain legal provisions or judgments
+can be open to multiple, potentially conflicting interpretations
+[@Stegmeier2021DevelopmentOA].
+
+While the meticulous nature of manual annotation underscores its
+strength, it is simultaneously a source of limitation. The time and
+effort it demands make it less viable for managing extensive databases
+of legal documents, a concern amplified in an era characterized by
+exponential digital expansion [@Nazarenko2018AnAL].
+
+@Nazarenko2021APA worked on a methodology to semantically annotate legal
+documents. They introduce a coarse-grained, interpretation-neutral
+annotation layer to enrich legal texts, striking a balance between
+traditional statistical retrieval and full textual rule formalization.
+Their methodology is exemplified through the semantic annotation of the
+French version of the GDPR, utilizing the Core Legal Annotation Language
+(CLAL) formalized in XML, establishing a gold standard for future
+semantic annotations in the legal domain.
+
+Another issue with manual annotation is that, although it enriches the
+depth of analysis, it introduces an element of subjectivity. Given the
+interpretational diversity among annotators, disparities in annotations
+can arise, particularly when dealing with multiple experts
+[@Stegmeier2021DevelopmentOA].
+
+In light of its reliance on human expertise, manual annotation
+necessitates substantial resources, both in terms of time and
+specialized knowledge. This, in turn, can render it less tenable for
+projects constrained by limited resources or stringent timelines.
+
+### Semi-automatic or assisted annotation
+
+Semi-automatic annotation seeks to strike a balance between human
+expertise and the efficiency of automated tools. Generally, by using
+this approach, computational tools propose initial annotations, which
+are subsequently reviewed and refined by human experts. By amalgamating
+human judgment with computational speed, semiautomatic annotation offers
+an efficient means of annotating texts, ensuring a harmonious blend of
+accuracy and efficiency.
+
+@Soavi2022SemanticAO developed a tool named *\"ContrattoA\"* that
+semi-automatically conducts semantic annotation of legal contract text
+leveraging a domain ontology. To achieve this, they first leveraged
+lexical patterns to recognize some ontological concepts in the legal
+text. Then, the effectiveness of these patterns was evaluated in an
+empirical study where one group of subjects was asked to annotate legal
+text manually, while a second group edited the annotations generated by
+ContrattoA. Subsequently, they focused on the core contract concepts of
+obligation and power where the results from the first iteration were
+mixed. Using an extended set of sample contracts, new lexical patterns
+were derived. These patterns were shown to significantly improve the
+performance of *ContrattoA*.
+
+@Ceci_Lesmo_Mazzei_Palmirani_Radicioni_2012, worked on designing a
+system to assist human experts in the annotation of normative
+modifications. As in the previous example, the automated system proposes
+a label, which is then validated or modified by the human annotator.
+
+### Automatic annotation
+
+The domain of legal texts presents unique challenges for automated
+semantic annotation due to its intricate language, layered references,
+and the high stakes involved in accurate interpretation. The most
+salient advantage of automatic annotation is its speed. Algorithms can
+process vast volumes of data at rates unattainable by humans. Yet, the
+very strength of automatic annotation is also its weakness. The absence
+of human oversight can lead to misinterpretations, especially given the
+nuanced and context-sensitive nature of legal language. Algorithms,
+while efficient, often lack the depth to fully grasp the multifaceted
+interpretations inherent in legal provisions at the current state of
+technology. Over the years, several researchers have delved into the
+task of automating various aspects of legal text processing.
+
+@Palmirani2003AutomatedEO worked on the automatic extraction of
+normative references in legal texts from the Italian acquis. They
+claimed that standardized legal documents, marked up under uniform
+formats and structures, can facilitate a seamless integration between
+distinct legal texts, making them easier to reference, find, and
+process. A significant contribution of their work lies in the
+identification and marking of various components of legal texts, such as
+partitions (paragraphs, articles and sections), and the normative
+references they contain. Their project sought to craft a model adept at
+recognizing, understanding, and normalizing these normative references,
+a step forward in ensuring semantic interoperability among various legal
+information systems.
+
+Recognizing the magnitude and intricacy of legal documents,
+@biagioli2005 emphasized the need for automated tools that can support
+the annotation process. They worked on the identification of regulatory
+provisions by detecting actors, rights, obligations and other entities
+integral to the legal discourse. They structured their approach in two
+steps: a provision identification module, that detects and classifies
+fragments of normative texts automatically based on their provision
+type, and an argument extraction module, that extracts the associated
+arguments from these provisions. They encountered several challenges
+tied to the unique lexicon and structure of the legal language, as they
+often carry weighty consequences.
+
+@Zeni2008AnnotatingRU [@Zeni2013GaiusTST] worked on automating the
+annotation of the Stanca law on web accessibility by adapting the Cerno
+framework in the Italian language. This framework provides a structured
+method, encompassing the identification of specific text fragments in
+regulatory documents, constructing a cohesive semantic model from these
+annotations, and subsequently transforming this model into distinct
+functional and non-functional requirements by focusing on concepts of
+obligations, rights, anti-rights, actor, and others.
+
+@Asooja2015SemanticAO focused on creating an automated approach for
+annotating financial regulations. Their aim was to enrich a formal
+ontology using segments from legislative texts. The method employed not
+only domain-centric semantics but also general ones, and integrated
+deontic logic for prescriptive clauses. Their technique utilized a
+multi-label classification strategy, powered by several binary
+classifiers. This system was trained using provision types manually
+annotated by subject matter experts, adopting a supervised learning
+approach.
+
+@towardsAnnotationAdebayo2018 leveraged the TextTiling algorithm,
+enhancing it with Latent Dirichlet Allocation (LDA) for refined topic
+modeling. By integrating Semantic Textual Similarity principles, legal
+texts are segmented to mirror inherent subtopics. Their aim was to
+semantically connect concept descriptors with topical segments across a
+document. Their methodology unfolds in three stages: topical document
+segmentation, concept profiling, and mapping of concepts to segments.
+
+@humphreys-etal-2020-populating harness advanced techniques to automate
+the semantic annotation of legal documents, specifically focusing on
+extracting norms and their elements. Central to their approach is
+combination of paraphrasing tools within unsupervised information
+extraction systems to produce semantically cohesive components from
+natural language. They applied Semantic Role Labeling (SRL) to identify
+and annotate specific elements such as \"Situation\", \"Result\", and
+\"Condition\" in legal texts. These annotated roles are then
+systematically mapped to slots in legal ontologies.
+
+In @Sleimi2020AnAF, an automated system that utilizes NLP and ML to
+extract designated metadata from texts was developed. They tested the
+system's effectiveness through two case studies centered on
+Luxembourgish legislation. The outcomes were encouraging: precision
+rates reached 97.2% and 82.4%, with recall at 94.9% and 92.4%. This
+evaluation was anchored on 200 randomly selected statements from traffic
+laws. Their approach could be divided into three components: semantic
+metadata extraction (at both phrase and statement levels) and a named
+entity recognition algorithm used to identify the agents involved.
+
+## Conclusion
+
+The complex nature of legal resources, rich in subtle linguistic
+patterns and vague language, compels a well-though approach to semantic
+annotation. While manual annotation offers a depth unattainable by
+machines, it often falls short in scalability. On the other hand, while
+automatic annotation offers unparalleled speed, it sometimes lacks the
+finesse required for precise interpretation. Semi-automatic annotation,
+on the other hand, offers a promising middle ground.
+
+As the domain of legal informatics evolves, a holistic understanding of
+these techniques is imperative. Future endeavors in this realm will
+undoubtedly seek to further harmonize the strengths of each method,
+paving the way for more refined, efficient, and accurate semantic
+annotations.
+
+In conclusion, the semantic annotation of legal texts remains an
+evolving field, characterized by diverse methodologies and techniques.
+These methodologies, while differing in their approaches, collectively
+underscore the significance of structured, systematic, and semantically
+rich representation of legal texts for enhanced accessibility,
+interpretation, and applicability.
+
+# Legal and ontological analysis of copyright in Italy
+
+Copyright is a legal instrument designed to safeguard *\"any literary,
+dramatic, musical or artistic original work, provided that is recorded,
+either in writing or otherwise\"* from imitation
+[@spence2007intellectual]. Unlike patents, which cover broader concepts,
+copyright specifically defends against direct copying and doesn't
+account for independent creation. It provides authors with exclusive
+rights concerning the reproduction, performance, adaptation, and
+translation of their work. The criteria for determining if an intangible
+item qualifies for copyright are broad. A \"work\" encompasses any set
+of materials organized intentionally. The term 'literary' doesn't assess
+the content's quality: originality doesn't depend on innovation but
+merely requires some form of intellectual endeavor
+[@spence2007intellectual]. Moreover, copyright law also recognize a
+spectrum of related rights, extending to creative outputs not directly
+tied to the original author. This encompasses rights of artists, audio
+recording producers, broadcasting entities, and, within the European
+framework, rights of movie producers, database designers, semiconductor
+creators, and industrial design professionals. Given these overarching
+criteria, the realm of copyright protection is vast. It spans sectors
+like visual arts, publishing, performing arts, and areas like source
+code and databases.
+
+The choice of semantically annotating Italian copyright legislation was
+driven by the large harmonization already in place across EU
+legislation, that would facilitate a harmonized approach across
+different Member States, and by extensive work on modeling copyright
+management processes and digital-right management processes that led to
+the development and creation of the copyright ontology
+[@garciaCopy2006], but the data transformation pipeline is
+general-purpose and could also be applied to other domains.
+
+## The Italian Copyright legislation
+
+### Historical overview
+
+Italy's copyright law is rooted in Law no. 633 of 22 April 1941
+[@it-633-1941], which is further complemented by select provisions from
+the Italian Civil Code of 1942. The digital revolution and the
+subsequent challenges it posed to traditional copyright frameworks
+necessitated adaptations in legal structures across Europe.
+
+Initially, this law adhered to the minimum protection requirements
+outlined in the Berne Convention for the Protection of Literary and
+Artistic Works of 1886 [@berne]. Over the years, the law has undergone
+several revisions to comply with various directives from the European
+Union and to align with changes following the establishment of the
+Italian Republic. For example, the legal protection of software was
+addressed through the issuance of Legislative Decree No. 518 of December
+29, 1992, later amended by Legislative Decree No. 205 of March 15, 1996,
+in response to the EU Directive 91/250/EEC of May 14, 1991.
+
+In recent years, Italy, like other European nations, has integrated
+European Union (EU) directives designed to harmonize and modernize
+copyright law in the digital context. These directives address the
+complexities introduced by digital networks, which have transformed
+communication, education, creativity, and professional development.
+
+### Structural Analysis of Italian Copyright Law in Akoma Ntoso
+
+#### Some words about Akoma Ntoso
+
+The Akoma Ntoso XML framework, often referred to simply as Akoma Ntoso,
+serves as a platform-independent XML description of legal resources. In
+Akoma Ntoso, these documents are enriched with detailed structural
+annotations, enabling machine-readable processing. This enhanced
+readability facilitates the development of advanced legislative
+information systems, promoting better efficiency and transparency in
+parliamentary, legislative, and judicial settings. Moreover, this
+framework allows for the creation of software tools that can interpret
+documents not just as basic text, but in relation to their inherent
+structure and meaning [@Palmirani2011AkomaNtosoFL].
+
+In 2019, Italy embarked on a journey to transform its entire legislative
+repository and judicial decisions into Akoma Ntoso format through the
+Lexdatafication project [@palmirani_lexdatafication_2021]. Before this,
+Italy utilized different standards for encoding such data
+[@Biagioli2004XMLDW]. However, these standards had their limitations,
+such as only extending to the article level and having inaccuracies,
+notably in the preamble and conclusions. They also missed details on
+consolidated versions and normative references.
+
+Currently, through Italy's official portal for legal information,
+Normattiva [@normattiva], one can download legal documents that align
+with the Akoma Ntoso guidelines.
+
+#### Metadata
+
+The copyright legislation is enriched with a comprehensive metadata
+structure that aids in discerning the provenance, lifecycle, and
+interrelations of the legislative document. The *identification* section
+bestows a granular level of granularity by offering identifiers rooted
+in the FRBR standard [@FRBR1998]. Each context is meticulously annotated
+with the Uniform Resource Identifier (URI), date of creation or
+modification, authorship, and linguistic medium. Augmenting this,
+preservation metadata according to ELI ontology, ensures
+interoperability with other European legislation.
+
+In tandem with identifying attributes, the metadata encapsulates key
+milestones in the document's lifecycle, providing a chronological
+roadmap of significant events. The *analysis* section delves into the
+active and passive modifications undergone by the document, spotlighting
+insertions and their textual specifics. Complementing this, the
+*references* section elucidates the foundational links to the document's
+genesis and affiliated passive citations. Finally, in the *proprietary*
+tag, information related to the document format are provided.
+
+#### Body
+
+The body of the copyright legislation is subdivided into 49 chapters,
+serving as broader thematic divisions. Within these chapters, the
+document elaborates on its provisions through 306 articles. These
+articles are then detailed out in 915 paragraphs, providing a
+comprehensive breakdown of each article's content and context.
+
+The legislation presents itself as a comprehensive document, organized
+to address the various dimensions of copyright law. It begins with key
+chapters such as *\"DISPOSIZIONI SUL DIRITTO DI AUTORE\"* and
+*\"Soggetti del diritto,\"* which lay down definitions and foundational
+principles of the law. Such an initiation provides clarity on the
+legislation's scope, the types of creative works protected, and the
+individuals or entities entitled to these protections.
+
+As the document progresses, it delves into specialized domains with
+chapters dedicated to *\"Programmi per elaboratore,\" \"Banche di
+dati,\"* and *\"Diritti audiovisivi sportivi.\"* These chapters were
+added at a later stage to adapt the legislation to technological
+advancements and cultural phenomena.
+
+The latter sections of the legislation are indicative of a holistic
+approach, addressing both the rights and the potential exceptions or
+limitations. Furthermore, chapters discussing penalties, enforcement
+mechanisms, and advisory bodies support a comprehensive view of rights
+and the procedural rules for their enforcement and guidance.
+
+## The copyright ontology
+
+The Copyright Ontology is a formalization of concepts and relationships
+of copyright legislation within the domain of content rights management
+[@garciaCopy2006; @García2007]. The copyright ontology was originally
+released in 2006 and built upon a more comprehensive work on IPRonto,
+that encompasses the larger field of Intellectual Property Rights
+[@upcIntellectualProperty]. Its primary objective is to enable automated
+and computer-supported copyright management throughout the entire
+content value chain, in strict accordance with copyright law. Unlike
+conventional rights languages and ontologies that only consider
+end-users' content consumption permissions, this ontology
+comprehensively addresses all aspects of content life-cycle. It is
+implemented leveraging W3C standards, such as RDF and OWL.This
+implementation ensures wide accessibility and ease of integration into
+existing systems and workflows. The ontology is available in Turtle RDF
+serialization format, facilitating data exchange and interoperability
+with other ontologies and systems.
+
+To tackle the complexities of the copyright domain, the ontology is
+subdivided in three smaller sets of concepts and relationships:
+
+-   Creation Model, which captures the diverse manifestations of
+    copyright creations as they progress through their life-cycle. It
+    encompasses different forms of original content and tracks their
+    transformations over time.
+
+-   Rights Model, which represents the legal constructs that regulate
+    content actions. It accommodates various legal systems, encompassing
+    both broad global rights frameworks advocated by organizations like
+    WIPO and specific rights delineated in regional legal regimes.
+
+-   Action Model, which defines a comprehensive set of actions that
+    govern the life-cycle of content. From creation to distribution,
+    each action is meticulously outlined, facilitating content
+    management and utilization.
+
+By combining these three interrelated models, the Copyright Ontology
+empowers content creators, managers, and consumers to navigate the
+complexities of copyright law [@García2007]. In the following sections,
+we will explore these three subdivisions more in detail.
+
+### Creation model
+
+As mentioned above, the creation model aims to capture the various forms
+a creative work takes during its life-cycle. This is not a new issue
+area. In particular, extensive research was undertaken in the context of
+bibliographic studies to represent works.
+
+#### FRBR Creation Model
+
+The FRBR (Functional Requirements for Bibliographic Records) model,
+proposed by the International Federation of Library Associations and
+Institutions (IFLA) [@FRBR1998], is the most widely recognized model for
+modeling intellectual creations. Its main components are:
+
+-   Work: An abstract intellectual or artistic creation, recognized
+    through its various expressions and characterized by its shared
+    content.
+
+-   Expression: The realization of a Work in forms like alpha-numeric
+    notation, sound, image, and more.
+
+-   Manifestation: The physical form of an Expression, ranging from
+    books and maps to films and multimedia kits. It represents physical
+    objects with shared content and characteristics.
+
+-   Item: A single instance or copy of a Manifestation.
+
+The FRBR model aids information professionals in effectively organizing
+bibliographic records, ensuring a holistic representation of creations
+across various forms.
+
+#### MPEG-21 Media Value Chain Ontology
+
+The MPEG-21 Media Value Chain Ontology (MVCO) is delineated in ISO/IEC
+standard MPEG-21 Part 19 and provides a robust framework for media value
+chains [@rodriguez2009; @gauvin2010media]. Key MVCO concepts include:
+
+-   Work: A creation's essence, independent of its Manifestations.
+
+-   Adaptation: A Work inspired by another.
+
+-   Manifestation: A tangible or perceivable expression of a Work, like
+    digital files or performances.
+
+-   Instance: An example of a recognized Manifestation, like a specific
+    file.
+
+-   Copy: A reproduction of an IP Entity. Digital Copies are
+    near-identical, while analog Copies can vary.
+
+While MVCO offers a granular approach, it falls short in discerning
+between object-based and event-based manifestations and instances,
+blurring distinctions in the creation process.
+
+#### Overcoming limitations
+
+Addressing the gaps in prior models, the Copyright Ontology integrates
+schema.org---a pervasive general ontology---to streamline its
+integration. The figure below captures the structure of this model:
+
+![Copyright's Ontology Creation Model
+[@garciaCopy2006]](images/creationmodel.png){#fig:creationmodel
+width="0.75\\linewidth"}
+
+Key elements and their relationships are:
+
+-   Work: An intellectual or artistic creation with forms ranging from
+    literature, art, and music to software and databases.
+
+-   Manifestation: The tangible or digital embodiment of a Work, with
+    subtypes like Sound and Audiovisual Recordings.
+
+-   Instance: A reproduction of a Manifestation or another Instance,
+    either physical or digital.
+
+-   Performance: The temporal expression of a Work, involving performers
+    or technical means.
+
+-   Improvisation: A spontaneous, unrehearsed expression of a Work,
+    distinct from a pre-existing Manifestation.
+
+-   Communication: The distribution of a Work, either as BroadcastEvent
+    (broad) or OnDemandEvent (tailored, such as streaming).
+
+-   Live Communication: Direct relay of a performance, devoid of
+    non-transient recordings.
+
+These elements delineate a Work's progression to end-user consumable
+forms like Instance, Communication, or Performance, emphasizing directly
+accessible instances for users.
+
+### Rights model
+
+The Rights Model of the Copyright Ontology captures the legal aspects of
+copyright, encompassing various rights granted to creators and other
+parties involved in the exploitation of works, as well as exceptions.
+The Rights Model is designed to be flexible and adaptable to different
+legal systems worldwide and it takes as reference international treaties
+deposited at WIPO such as the Berne Convention [@berne] and the Beijing
+Treaty [@beijing]. It follows recommendations from the World
+Intellectual Property Organisation (WIPO) and covers both economic and
+moral rights, as well as copyright-related rights.
+
+The model's primary focus is on the economic rights as they pertain to
+the production and commercial aspects of copyright. These economic
+rights include Reproduction, Distribution, Public Performance, Fixation,
+Communication, and Transformation. Each of these rights governs a
+specific action on copyrighted content, such as the right to reproduce
+or distribute the work.
+
+Moral rights, on the other hand, are distinct from economic rights and
+are inherently non-commercial. They are always retained by the creator
+of a work and are primarily concerned with the reputation of the author.
+These include the Attribution Right, which allows the creator to claim
+authorship, and the Integrity Right, which enables the creator to object
+to any modifications that might tarnish their reputation. Notably, while
+moral rights are integral to many legal systems, they are not
+universally recognized.
+
+In addition to the aforementioned rights, the copyright ontology also
+addresses related rights, that are referred to as Neighbouring Rights.
+These rights are tailored for other key stakeholders involved in the
+production and dissemination of copyrighted works, such as performers,
+producers, and broadcasters. Their roles in bringing creations to the
+audience are significant, and thus they are granted exclusive rights
+over their contributions. For instance, performers have exclusive rights
+over their performances, while broadcasters have rights over their
+broadcasts.
+
+The model also addresses Copyright Exceptions, serving as right
+limitations. These include Quotation, Education, Reporting, Official
+Act, Private Copy, Parody, and Temporary Reproduction exceptions,
+accommodating specific uses and differing per jurisdiction.
+
+![Copyright Ontology's Rights
+Model](images/rightsmodel.png){#fig:rightsmodel width="0.6\\linewidth"}
+
+### Actions model
+
+The Action Model in the Copyright Ontology plays a crucial role in
+capturing the dynamic aspects of creation value chains. By focusing on
+actions performed by various actors involved in the copyright ecosystem,
+this \"Action-Oriented Modeling\" approach creates a cohesive and
+comprehensive framework.
+
+One of the key advantages of this approach is its ability to seamlessly
+integrate with other initiatives, such as schema.org, which includes
+actions as part of its proposed vocabulary. By utilizing semantic roles
+from linguistics, which link different parts of a sentence to the main
+action (usually represented by the verb), the Copyright Ontology ensures
+a robust and coherent representation of actions and their relationships
+to the entities involved.
+
+At the heart of the Action Model are actions that \"move\" creations
+along their value chain, allowing for a clear understanding of how a
+creation progresses from a conceptual Work to a perceivable
+Manifestation or a dynamic Performance. The Manifest action represents
+the embodiment of a Work into a tangible object or Manifestation, while
+the Perform action involves the direct embodiment of a Work into a
+Performance, without the need for a prior Manifestation.
+
+These actions are not isolated; they are interconnected with the rights
+identified in the Rights Model, which govern the actions and the
+creations they involve. For instance, the Copy action, governed by the
+Reproduction Right, generates replicas of a Manifestation, Recording, or
+Instance. The Perform action, on the other hand, is not constrained by
+copyright unless it takes place in public, in which case it falls under
+the Public Performance Right.
+
+To capture the various nuances and complexities of copyright agreements,
+the Action Model includes specific actions for managing rights and
+agreements. The Agree action represents the mutual agreement of parties
+to abide by constrained actions related to the use or exploitation of
+copyrighted content. Conversely, the Disagree action revokes an existing
+agreement by referring to the corresponding Agree action.
+
+For end-users, the Action Model includes actions related to content
+consumption. The Use action encompasses the consumption of copyrighted
+content by end-users, with specific kinds of uses like Access, Attend,
+and Tune, allowing users to consume content via on-demand access, live
+performances, or broadcasts.
+
+![Copyright Ontology's Action
+Model](images/actionsmodel.png){#fig:action model
+width="0.6\\linewidth"}
+
+## Conclusion
+
+# Streamlining semantic annotation with Doccano
+
+## System description
+
+The streamlined data pipeline comprises the following steps:
+
+-   Parse files from Akoma Ntoso format: In this initial stage, we
+    extract the legal data at the paragraph level from files structured
+    in Akoma Ntoso format, while preserving relevant metadata.
+
+-   Parse relevant ontologies and controlled vocabularies into a
+    Doccano-compatible format (JSON): doccano does not support
+    ontological classes and controlled vocabularies out of the box, but
+    it has an \"import labels\" functionality that requires JSON files
+    in a specific format.
+
+-   Annotate using the Doccano tool: Doccano provides a user-friendly
+    interface where labels and relationships are easy to find in the
+    respective ontologies. Appropriate user-interface and database
+    adaptations of Doccano's open-source code were made necessary, as
+    the tool did not initally support more than 26 different labels. The
+    tool's user-friendly interface enables the annotator to mark and
+    categorize important information according to their needs.
+
+-   Map the Doccano annotated output (JSONL) file to a Lynx format: we
+    transform the annotated JSONL file from Doccano into the Lynx
+    format, an offset-based legal document format for compliance
+    documents.
+
+![Pipeline flowchart](images/pipeline.jpg){#fig:enter-label
+width="1\\linewidth"}
+
+## System's components
+
+In this section, we will present in detail the various steps of the
+pipeline.
+
+### Akoma Ntoso preprocessing
+
+The AkomaNtosoParser component functions as an integrated system for
+data extraction, employing well-established Python libraries, namely,
+ElementTree for XML parsing and Pandas for data manipulation. The
+component undergoes the following sequential steps:
+
+-   Parsing and Extracting Chapters and Articles: The parser ingests the
+    input XML file and extracts chapters along with their associated
+    articles. A DataFrame is constructed to store metadata, including
+    article_id, chapter_id, and chapter_heading, linking articles to
+    their corresponding chapters.
+
+-   Extracting Paragraphs: Each article is further analyzed to extract
+    individual paragraphs. The parser identifies unique paragraphs based
+    on article_id, paragraph_id, and p_id, where p_id represents a
+    sub-division of a paragraph. Text content, insertions, and
+    references within each paragraph are captured and recorded in the
+    DataFrame.
+
+-   DataFrame Creation: The collected data is structured into a
+    comprehensive DataFrame, offering an organized representation of the
+    legal document. This facilitates streamlined data handling, allowing
+    for efficient analysis and retrieval of pertinent information.
+
+The proposed approach presents a robust and automated solution for
+extracting structured data from legal documents encoded in Akoma Ntoso
+format. The extraction process generates a dataframe that is then
+converted in JSON lines, the required format for uploading the data into
+the Doccano annotation tool.
+
+### Label preprocessing: OWL and SKOS
+
+#### SKOS
+
+SKOS is a widely-used RDF vocabulary for representing and managing
+knowledge organization systems. SKOS files contain valuable information,
+and extracting top concepts is crucial for effective knowledge
+representation and visualization. This work introduces SKOSParser, a
+Python component designed to parse SKOS files, identify top concepts,
+and enrich the extracted data for improved visualization and analysis.
+
+The SKOSParser class is instantiated with the file path to the SKOS file
+in XML format. The component employs the rdflib library to create a
+graph object, which parses and represents the SKOS file. Subsequently,
+the SKOSParser performs the following key functionalities:
+
+-   Parsing and Extracting Top Classes: The parse_skos method parses the
+    SKOS file, extracting essential concepts, and filters out top
+    classes by considering SKOS:Concept instances without
+    SKOS:topConceptOf relationships. The parser retrieves the concept's
+    URI, preferred label (in English), and an associated prefix. The top
+    classes are then stored in a structured format as a list of
+    dictionaries.
+
+-   Enrichment with Random Colors: The enrich_json method processes the
+    extracted top concepts, appending a human-readable label by
+    concatenating the concept's prefix and preferred label. The method
+    also assigns random background colors to enhance visual
+    representation during visualization. The enriched data is stored in
+    a standardized JSON format.
+
+-   Data Export: The SKOSParser class includes a write_to_file method
+    that exports the enriched data to a JSON file compatible for the
+    upload in the Doccano annotation tool.
+
+The SKOSParser component demonstrates a proficient solution for
+extracting top concepts from SKOS controlled vocabularies. By leveraging
+Python's rdflib library, the component efficiently navigates and
+processes RDF graph data, yielding structured information about top
+classes.
+
+#### OWL
+
+The Ontology Parser comprises a Python class, instantiated with the file
+path to the RDF ontology in Turtle format. The parser utilizes rdflib to
+create a graph object, subsequently parsing the ontology file to
+populate the graph. The parser then employs random_color and shade_color
+methods to generate and manipulate colors for visual representation
+during analysis.
+
+The key functionalities of the Ontology Parser are as follows:
+
+-   Class Extraction: The component traverses the ontology graph to
+    identify classes with RDF type OWL.Class. Utilizing a predefined set
+    of namespaces, the parser associates each class with a
+    human-readable and concise class name, while preserving its full URI
+    reference. The parser stores class information in a structured
+    format, including class names, suffix keys, background colors, text
+    colors, and URIs.
+
+-   Property Extraction: The parser further identifies RDF Object
+    Properties in the ontology, extracting and organizing them similarly
+    to classes. Utilizing the graph's triples, the component extracts
+    property names and stores them alongside relevant attributes, such
+    as suffix keys and background colors.
+
+-   Data Export: The Ontology Parser provides methods to obtain and
+    export extracted class and property data as JSON files, supported
+    for their loading in the Doccano annotation tool.
+
+The Ontology Parser is a practical and efficient solution for extracting
+essential class and property information from RDF ontologies. By
+employing Python's rdflib library, the component effectively navigates
+and extracts structured data from complex ontological models.
+
+### Adaptation of the Doccano annotation tool
+
+To overcome the challenge of accommodating numerous classes and
+properties stored in ontologies, the Doccano annotation web app
+underwent significant modifications. Initially, the app had limited
+provisions for labels, restricting the number of identifiers to just 26.
+To address this limitation, essential tweaks were made to the Django
+models, allowing for longer identifiers. The chosen identifier was the
+URI of each class in its respective ontology, stored in the
+\"suffix_key\" attribute.
+
+This alteration expanded the app's labeling capabilities, enabling it to
+seamlessly handle a larger variety of classes and properties during
+annotations. The adoption of URIs as identifiers preserved each class's
+unique identity while promoting compatibility with ontological data
+sources. With URIs in place, the Doccano web app efficiently mapped and
+represented classes in a format suitable for RDF, contributing to
+precise and unambiguous class annotation.
+
+The modified Doccano app now offers improved flexibility, scalability,
+and functionality, empowering users to annotate and analyze text
+documents enriched with diverse ontological knowledge.
+
+### Manual annotation
+
+The annotation step was especially intricate, necessitating a meticulous
+examination of legal concepts and their potential mapping to a copyright
+ontology. In several instances, the legal analysis indicated a lack of
+suitable classes or relationships within existing copyright ontologies.
+As such, the research scope expanded to include other ontologies. In
+cases where no appropriate concepts existed, a decision was made whether
+to establish a new terminology or refrain from marking up the document
+until a later stage.
+
+The best practices for marking up legal texts, as per Palmirani and
+Vitali, as well as the LegalRuleML standard, were carefully considered
+during this process. The LegalRuleML standard, found here \[[LegalRuleML
+Standard](https://docs.oasis-open.org/legalruleml/legalruleml-core-spec/v1.0/os/legalruleml-core-spec-v1.0-os.pdf)\],
+provided useful guidance for embedding machine-readable information into
+legal texts.
+
+Upon completion of the preliminary data exploration, it was observed
+that several ontology concepts could be translated into text. This could
+potentially enhance the interpretation and readability of legal
+documents.
+
+### Representing Legal concepts in Lynx
+
+Semantic technologies and RDF graphs play a pivotal role in knowledge
+representation, enabling effective data integration and retrieval. The
+increasing prevalence of annotated text documents demands tools capable
+of transforming these annotations into structured RDF graphs. This
+component extract entities and their metadata from annotated text
+documents and convert them into a RDF format according to the Lynx
+specifications.
+
+The LynxDocument class is centered around the rdflib library, which
+provides functionality for working with RDF data. The tool's key
+functionalities are as follows:
+
+-   Annotation Conversion: LynxDocument reads and processes Akoma Ntoso
+    and SKOS elements from a JSON file, converting them into a format
+    suitable for RDF graph representation. The Akoma Ntoso elements
+    define metadata, while the SKOS elements represent predefined
+    concepts and their URIs.
+
+-   Graph Initialization: LynxDocument initializes an RDF graph, binding
+    relevant prefixes to namespaces used in the graph representation.
+    The SKOS and Akoma Ntoso elements are then loaded into the graph.
+
+-   Document Representation: LynxDocument generates a URI for each
+    document based on its identifier and type. The tool adds document
+    metadata, such as language and identifiers at the paragraph level,
+    if available in the Akoma Ntoso elements.
+
+-   Text and Annotation Addition: LynxDocument extracts the text from
+    the annotated document and adds it to the RDF graph. The tool
+    annotates entities within the text by creating RDF nodes for each
+    entity span. Additionally, the tool enriches annotations by
+    associating them with predefined concepts from the SKOS elements.
+
+-   Serialization: LynxDocument serializes the generated RDF graph into
+    Turtle format, facilitating easy storage and integration with other
+    knowledge graphs and ontologies.
+
+## Conclusion
+
+# Conclusions {#conclusions .unnumbered}
+
+Semantic annotation -\> Semantic interoperability -\> Legal
+interoperability
+
+# Use of LLM-powered AI tools in the research
+
+Data was relatively easy to get, as the development of the source code
+was supported by the use of generative AI tools such as ChatGPT, Bing,
+Bard, and alike. The results of the generative process were supported by
+a careful examination and revision.
+
+::: appendices
+:::
